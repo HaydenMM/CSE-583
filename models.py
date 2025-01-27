@@ -61,13 +61,17 @@ class ML:
         
         # w = (X^T X)^-1 X^T y
         # Broken down Step-by-Step:
-        # (X^T X)
+
+        # Step 1: Calculate X^T X
         XT_X = np.dot(X.T, X)
-        # (X^T X)^-1
+
+        # Step 2: Calculate Inverse of X^T X = (X^T X)^-1
         _XT_X = np.linalg.inv(XT_X)
-        # X^T y
+
+        # Step 3: Calculate X^T y
         XT_y = np.dot(X.T, y)
-        # (X^T X)^-1 X^T y
+        
+        # Step 4: Combine (X^T X)^-1 X^T y
         self.weights = np.dot(_XT_X, XT_y)
     
     def predict(self, x):
@@ -114,17 +118,17 @@ class MAP:
         
         # w = (βX^T X + αI)^-1 βX^T y
         # Broken down Step-by-Step:
-        # βX^T X
+        # Step 1: Calculate βX^T X
         BXT = np.dot(self.beta * X.T, X)
-        # αI
+        # Step 2: Calculate αI
         aI = self.alpha * np.eye(self.degree + 1)
-        # (βX^T X + αI)
+        # Step 3: Calculate (βX^T X + αI)
         BXT_aI = BXT + aI
-        # (βX^T X + αI)^-1
+        # Step 4: Calculate the inverse (βX^T X + αI) = (βX^T X + αI)^-1
         _BXT_aI = np.linalg.inv(BXT_aI)
-        # βX^T y
+        # Step 5: Calculate βX^T y
         BXTy = np.dot(self.beta * X.T, y)
-        # (βX^T X + αI)^-1 βX^T y
+        # Step 6: Combine (βX^T X + αI)^-1 βX^T y
         self.weights = np.dot(_BXT_aI, BXTy)
     
     def predict(self, x):
