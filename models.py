@@ -8,12 +8,22 @@ file that you add code to.)
 {
     Name: Hayden Moore
     PSU Email ID: hmm5731
-    Description: (A short description of what each of the functions you're written does).
-    - ML
+
+    Class ML() Description: 
+    Polynomial Regression Model implementing Linear Least Squares.
+    A machine learning model that fits polynomial features up to a specified degree
+    using the normal equation method. Transforms 1D input data into polynomial features
+    and performs regression by computing optimal weights through matrix operations.
         - __init__(self, degree=3)
         - _create_polynomial_features(self, x)
         - fit(self, x, y)
         - predict(self, x)
+
+    Class MAP() Description: 
+    Maximum A Posteriori (MAP) Polynomial Regression Model.
+    A Bayesian regression model that fits polynomial features using MAP estimation
+    with Gaussian prior and likelihood. Incorporates regularization through prior
+    precision (alpha) and likelihood precision (beta) hyperparameters.
     - MAP
         - __init__(self, alpha=0.005, beta=11.1, degree=3)
         - _create_polynomial_features(self, x)
@@ -50,7 +60,15 @@ class ML:
         X = self._create_polynomial_features(x)
         
         # w = (X^T X)^-1 X^T y
-        self.weights = np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y))
+        # Broken down Step-by-Step:
+        # (X^T X)
+        XT_X = np.dot(X.T, X)
+        # (X^T X)^-1
+        _XT_X = np.linalg.inv(XT_X)
+        # X^T y
+        XT_y = np.dot(X.T, y)
+        # (X^T X)^-1 X^T y
+        self.weights = np.dot(_XT_X, XT_y)
     
     def predict(self, x):
         """
@@ -95,10 +113,19 @@ class MAP:
         X = self._create_polynomial_features(x)
         
         # w = (βX^T X + αI)^-1 βX^T y
-        N = len(x)
-        I = np.eye(self.degree + 1)
-        A_inv = np.linalg.inv(np.dot(self.beta * X.T, X) + self.alpha * I)
-        self.weights = np.dot(A_inv, np.dot(self.beta * X.T, y))
+        # Broken down Step-by-Step:
+        # βX^T X
+        BXT = np.dot(self.beta * X.T, X)
+        # αI
+        aI = self.alpha * np.eye(self.degree + 1)
+        # (βX^T X + αI)
+        BXT_aI = BXT + aI
+        # (βX^T X + αI)^-1
+        _BXT_aI = np.linalg.inv(BXT_aI)
+        # βX^T y
+        BXTy = np.dot(self.beta * X.T, y)
+        # (βX^T X + αI)^-1 βX^T y
+        self.weights = np.dot(_BXT_aI, BXTy)
     
     def predict(self, x):
         """
