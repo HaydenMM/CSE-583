@@ -118,16 +118,22 @@ class MAP:
         
         # w = (βX^T X + αI)^-1 βX^T y
         # Broken down Step-by-Step:
+
         # Step 1: Calculate βX^T X
         BXT = np.dot(self.beta * X.T, X)
+
         # Step 2: Calculate αI
         aI = self.alpha * np.eye(self.degree + 1)
+
         # Step 3: Calculate (βX^T X + αI)
         BXT_aI = BXT + aI
+
         # Step 4: Calculate the inverse (βX^T X + αI) = (βX^T X + αI)^-1
         _BXT_aI = np.linalg.inv(BXT_aI)
+
         # Step 5: Calculate βX^T y
         BXTy = np.dot(self.beta * X.T, y)
+        
         # Step 6: Combine (βX^T X + αI)^-1 βX^T y
         self.weights = np.dot(_BXT_aI, BXTy)
     

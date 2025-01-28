@@ -107,7 +107,7 @@ def linear_regression():
     sigma = np.load(data_name)['sigma']
 
     # Generate Class Instance (ML or MAP) w/ Polynomial Degree
-    ML_Model = ML(degree=9)
+    ML_Model = ML(degree=3)
     # Fit the model to the noisy data
     ML_Model.fit(x,t)
     # Collect the predictions on x from the fitted model
@@ -116,7 +116,7 @@ def linear_regression():
     plot_with_shadded_bar(x=x, y=y, t=t, pred=pred, sigma=sigma, file_name="ml_model")
 
     # Generate Class Instance (ML or MAP) w/ Polynomial Degree
-    MAP_Model = MAP(degree=9)
+    MAP_Model = MAP(degree=3)
     # Fit the model to the noisy data
     MAP_Model.fit(x,t)
     # Collect the predictions on x from the fitted model
@@ -126,7 +126,7 @@ def linear_regression():
 
     
 def main():
-    generateNoisyData(1000)
+    generateNoisyData(50)
     linear_regression()
 
 

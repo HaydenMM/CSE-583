@@ -1,3 +1,35 @@
+# hmm5731@psu.edu
+linear_regression.py
+ Linear Regression Project Implementation.
+    This file implements polynomial regression using both Maximum Likelihood (ML) and 
+    Maximum A Posteriori (MAP) approaches. It generates synthetic noisy sinusoidal data, 
+    fits polynomial models of various degrees, and visualizes the results with confidence intervals.
+    - generateNoisyData()
+    - plot_with_shadded_bar()
+    - linear_regression()
+
+models.py
+ Class ML() Description: 
+    Polynomial Regression Model implementing Linear Least Squares.
+    A machine learning model that fits polynomial features up to a specified degree
+    using the normal equation method. Transforms 1D input data into polynomial features
+    and performs regression by computing optimal weights through matrix operations.
+        - __init__(self, degree=3)
+        - _create_polynomial_features(self, x)
+        - fit(self, x, y)
+        - predict(self, x)
+
+    Class MAP() Description: 
+    Maximum A Posteriori (MAP) Polynomial Regression Model.
+    A Bayesian regression model that fits polynomial features using MAP estimation
+    with Gaussian prior and likelihood. Incorporates regularization through prior
+    precision (alpha) and likelihood precision (beta) hyperparameters.
+    - MAP
+        - __init__(self, alpha=0.005, beta=11.1, degree=3)
+        - _create_polynomial_features(self, x)
+        - fit(self, x, y)
+        - predict(self, x)
+
 You are given starter code for CSE 583/EE 552 PRML Project 1  which contains the following: 
 
 - Part 1, in the linear_regression.py file you will have the functions:
