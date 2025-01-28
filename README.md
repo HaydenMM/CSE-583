@@ -11,6 +11,7 @@ linear_regression.py
 models.py
  Class ML() Description: 
     Polynomial Regression Model implementing Linear Least Squares.
+
     A machine learning model that fits polynomial features up to a specified degree
     using the normal equation method. Transforms 1D input data into polynomial features
     and performs regression by computing optimal weights through matrix operations.
@@ -21,6 +22,7 @@ models.py
 
     Class MAP() Description: 
     Maximum A Posteriori (MAP) Polynomial Regression Model.
+    
     A Bayesian regression model that fits polynomial features using MAP estimation
     with Gaussian prior and likelihood. Incorporates regularization through prior
     precision (alpha) and likelihood precision (beta) hyperparameters.
