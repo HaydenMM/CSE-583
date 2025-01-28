@@ -43,7 +43,8 @@ def generateNoisyData(num_points=50):
     nmu = 0
     sigma = 0.3
     noise = nmu + sigma * np.random.randn(num_points)
-    t = y + noise
+    #t = y + noise
+    t = y
 
     # Save the data
     np.savez('data.npz', x=x, y=y, t=t, sigma=sigma)
@@ -75,7 +76,7 @@ def plot_with_shadded_bar(x=None, y=None, t=None, pred=None, sigma=None, file_na
     # Plot the prediction area with standard deviation
     ax.fill_between(x, pred-sigma, pred+sigma, color='b', alpha=0.2)
     # Plot the noisy data points
-    #ax.scatter(x, t, color='b', marker='o', facecolors='none', edgecolors='blue', label='Noisy Data')
+    ax.scatter(x, t, color='b', marker='o', facecolors='none', edgecolors='blue', label='Noisy Data')
 
     # Set labels and create figure
     ax.set_xlabel('x')
@@ -98,8 +99,10 @@ def linear_regression():
         5. Plot the results
     """
     # Load in data
-    #data_name = "hw1-data-50.npz"
-    data_name = "hw1-data-1000.npz"
+    data_name = "hw1-data-50.npz"
+    #data_name = "hw1-data-1000.npz"
+    #data_name = "hw1-data-clean-50.npz"
+    #data_name = "hw1-data-clean-1000.npz"
     np.load(data_name)
     x = np.load(data_name)['x']
     y = np.load(data_name)['y']
@@ -107,7 +110,7 @@ def linear_regression():
     sigma = np.load(data_name)['sigma']
 
     # Generate Class Instance (ML or MAP) w/ Polynomial Degree
-    ML_Model = ML(degree=3)
+    ML_Model = ML(degree=9)
     # Fit the model to the noisy data
     ML_Model.fit(x,t)
     # Collect the predictions on x from the fitted model
@@ -116,7 +119,7 @@ def linear_regression():
     plot_with_shadded_bar(x=x, y=y, t=t, pred=pred, sigma=sigma, file_name="ml_model")
 
     # Generate Class Instance (ML or MAP) w/ Polynomial Degree
-    MAP_Model = MAP(degree=3)
+    MAP_Model = MAP(degree=9)
     # Fit the model to the noisy data
     MAP_Model.fit(x,t)
     # Collect the predictions on x from the fitted model
