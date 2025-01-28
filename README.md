@@ -1,6 +1,7 @@
 # hmm5731@psu.edu
 linear_regression.py
  Linear Regression Project Implementation.
+ 
     This file implements polynomial regression using both Maximum Likelihood (ML) and 
     Maximum A Posteriori (MAP) approaches. It generates synthetic noisy sinusoidal data, 
     fits polynomial models of various degrees, and visualizes the results with confidence intervals.
@@ -22,7 +23,6 @@ models.py
 
     Class MAP() Description: 
     Maximum A Posteriori (MAP) Polynomial Regression Model.
-    
     A Bayesian regression model that fits polynomial features using MAP estimation
     with Gaussian prior and likelihood. Incorporates regularization through prior
     precision (alpha) and likelihood precision (beta) hyperparameters.
