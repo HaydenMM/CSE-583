@@ -9,12 +9,13 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import Dataset, DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
 from sklearn.metrics import accuracy_score
+from sklearn.feature_selection import VarianceThreshold, mutual_info_classif
 from model_starter import TraditionalClassifier
 from model_starter import  MLP
 from torch.optim.lr_scheduler import StepLR
@@ -22,12 +23,21 @@ from torch.optim.lr_scheduler import StepLR
 # Global Variables
 VERBOSE = False
 
-def feature_selection(feats):
-    '''
-    TODO: Implement Feature Selection
-    '''
-    raise NotImplementedError
-def convert_features_to_loader(train_feats_proj, train_labels, test_feats_proj, test_labels,batch_size):
+def feature_selection(feats, labels, var_threshold=0.01, top_k=50):
+    # Step 1: Remove low-variance features
+    selector = VarianceThreshold(threshold=var_threshold)
+    feats_var_filtered = selector.fit_transform(feats)
+    
+    # Step 2: Compute mutual information between features and labels
+    mi_scores = mutual_info_classif(feats_var_filtered, labels)
+    
+    # Step 3: Select top K features based on mutual information
+    top_k_indices = np.argsort(mi_scores)[-top_k:]  # Select indices of top features
+    selected_feats = feats_var_filtered[:, top_k_indices]
+    
+    return selected_feats
+
+def convert_features_to_loader(train_feats_proj, train_labels, test_feats_proj, test_labels, batch_size):
     '''
     TODO: Convert NumPy arrays to PyTorch tensors and create DataLoader instances.
 
@@ -42,92 +52,121 @@ def convert_features_to_loader(train_feats_proj, train_labels, test_feats_proj, 
     9. Return the `train_loader` and `test_loader` for use in model training and evaluation.
 
     '''
-    raise NotImplementedError
+    # Convert to PyTorch tensors
+    train_feats_tensor = torch.tensor(train_feats_proj, dtype=torch.float32)
+    train_labels_tensor = torch.tensor(train_labels, dtype=torch.long)
+    test_feats_tensor = torch.tensor(test_feats_proj, dtype=torch.float32)
+    test_labels_tensor = torch.tensor(test_labels, dtype=torch.long)
 
-#TODO: Parameters value have been left blank. Fill in the parameters with appropriate values
-# def deep_learning(train_feats_proj, train_labels, test_feats_proj, test_labels, input_dim=, output_dim=,
-#                   hidden_dim=64, num_layers=, batch_size=, learning_rate=0.001, epochs=100):
-#     model = MLP(input_dim, output_dim, hidden_dim, nn.ReLU, num_layers)
-#     criterion = nn.CrossEntropyLoss()
-#     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    class JointDataset(Dataset):
+        def __init__(self, features, labels):
+            self.features = features
+            self.labels = labels
 
+        def __len__(self):
+            return len(self.features)
 
-#     scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
+        def __getitem__(self, idx):
+            return self.features[idx], self.labels[idx]
 
-#     train_loader,test_loader = convert_features_to_loader(train_feats_proj, train_labels, test_feats_proj, test_labels, batch_size)
+    # Create dataset instances
+    train_dataset = JointDataset(train_feats_tensor, train_labels_tensor)
+    test_dataset = JointDataset(test_feats_tensor, test_labels_tensor)
 
+    # Create DataLoader instances
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-#     for epoch in range(epochs):
-#         model.train()
-#         total_loss = 0
-#         for batch_data, batch_labels in train_loader:
-#             optimizer.zero_grad()
-#             outputs = model(batch_data)  # Model call
-#             loss = criterion(outputs, batch_labels)
-#             loss.backward()
-
-#             optimizer.step()  # Update model parameters
-#             total_loss += loss.item()
-#         scheduler.step()  # Update learning rate if using a scheduler (optional)
-
-#         print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
-
-#     # Evaluation
-#     model.eval()
-#     correct = 0
-#     total = 0
-#     with torch.no_grad():
-#         for batch_data, batch_labels in test_loader:
-#             outputs = model(batch_data)
-#             _, predicted = torch.max(outputs, 1)
-#             total += batch_labels.size(0)
-#             correct += (predicted == batch_labels).sum().item()
-
-#     accuracy = correct / total * 100
-#     print(f"Deep Learning Test Accuracy: {accuracy:.2f}%")
-
-#     correct = 0
-#     total = 0
-#     with torch.no_grad():
-#         for batch_data, batch_labels in train_loader:
-#             outputs = model(batch_data)
-#             _, predicted = torch.max(outputs, 1)
-#             total += batch_labels.size(0)
-#             correct += (predicted == batch_labels).sum().item()
-
-#     accuracy = correct / total * 100
-#     print(f"Deep Learning Train Accuracy: {accuracy:.2f}%")
+    return train_loader, test_loader
 
 
-def perform_traditional(train_feats_proj, train_labels, test_feats_proj, test_labels):
+def deep_learning(train_feats_proj, train_labels, test_feats_proj, test_labels, subject_id,
+                  hidden_dim=64, num_layers=3, batch_size=64, learning_rate=0.001, epochs=100):
+    
+    input_dim = train_feats_proj.shape[1]
+    output_dim = len(torch.unique(torch.tensor(train_labels)))
+    
+    model = MLP(input_dim, output_dim, hidden_dim, nn.ReLU, num_layers)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+    scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
+
+    train_loader,test_loader = convert_features_to_loader(train_feats_proj, train_labels, test_feats_proj, test_labels, batch_size)
+
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        for batch_data, batch_labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_data)  # Model call
+            loss = criterion(outputs, batch_labels)
+            loss.backward()
+
+            optimizer.step()  # Update model parameters
+            total_loss += loss.item()
+        scheduler.step()  # Update learning rate if using a scheduler (optional)
+
+        print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
+
+    # Evaluation
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_data, batch_labels in test_loader:
+            outputs = model(batch_data)
+            _, predicted = torch.max(outputs, 1)
+            total += batch_labels.size(0)
+            correct += (predicted == batch_labels).sum().item()
+
+    test_accuracy = correct / total * 100
+    print(f"Deep Learning Test Accuracy: {test_accuracy:.2f}%")
+
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_data, batch_labels in train_loader:
+            outputs = model(batch_data)
+            _, predicted = torch.max(outputs, 1)
+            total += batch_labels.size(0)
+            correct += (predicted == batch_labels).sum().item()
+
+    accuracy = correct / total * 100
+    print(f"Deep Learning Train Accuracy: {accuracy:.2f}%")
+
+    return test_accuracy
+
+
+def perform_traditional(train_feats, train_labels, test_feats, test_labels, subject_id, proj):
+    '''
+    Perform Traditional Classification with TraditionalClassifier(KNeighborsClassifier):
+    1. Create instance of Classifier
+    2. Fit to the Train data {Projected, Not Projected}
+    3. Evaluate on both Train and Test data (Seperately)
+    4. Return Test Accuracy
+    '''
+    
     classifiers = {
         "traditional_classifier": TraditionalClassifier(),
-        # "deep_learning": deep_learning,
     }
 
     for name, clf in classifiers.items():
         if name == "traditional_classifier":
-            print(f"\n--- {name} Classifier ---")
-
             # Train the classifier
-            clf.fit(train_feats_proj, train_labels)
-
-            # Predict the labels of the training and testing data
-            pred_train_labels = clf.predict(train_feats_proj)
-            pred_test_labels = clf.predict(test_feats_proj)
-
-            return clf.evaluate(train_labels, pred_train_labels, test_labels, pred_test_labels)
+            clf.fit(train_feats, train_labels)
+            # Evaluate on Train and Test 
+            return clf.evaluate(train_feats, train_labels, test_feats, test_labels, subject_id, proj)
 
         else:
-            return clf(train_feats_proj, train_labels, test_feats_proj, test_labels)
+            return clf(train_feats_proj, train_labels, test_feats_proj, test_labels, subject_id, proj)
 
 
 def load_new_dataset(verbose=True,subject_index=1):
     # Using the 3 datasets provided to us {Taiji_dataset_100.csv, Taiji_dataset_200.csv, Taiji_dataset_300.csv}
-    dataset = np.loadtxt("Taiji_dataset_100.csv", delimiter=",", dtype=float,skiprows=1,usecols=range(0, 70) )
+    # dataset = np.loadtxt("Taiji_dataset_100.csv", delimiter=",", dtype=float,skiprows=1,usecols=range(0, 70) )
     # dataset = np.loadtxt("Taiji_dataset_200.csv", delimiter=",", dtype=float,skiprows=1,usecols=range(0, 70) )
-    # dataset = np.loadtxt("Taiji_dataset_300.csv", delimiter=",", dtype=float,skiprows=1,usecols=range(0, 70) )
+    dataset = np.loadtxt("Taiji_dataset_300.csv", delimiter=",", dtype=float,skiprows=1,usecols=range(0, 70) )
     
     # Extract `person_idxs` (last column)
     person_idxs = dataset[:, -1]  # All rows, last column
@@ -163,66 +202,9 @@ def load_new_dataset(verbose=True,subject_index=1):
     return train_feats, train_labels, test_feats, test_labels
 
 
-
-
-def plot_conf_mats(dataset="taiji", **kwargs):
-    """
-    Plots the confusion matrices for the training and testing data.
-    Args:
-        dataset: name of the dataset.
-        train_labels: training labels.
-        pred_train_labels: predicted training labels.
-        test_labels: testing labels.
-        pred_test_labels: predicted testing labels.
-    """
-
-    train_labels = kwargs['train_labels']
-    pred_train_labels = kwargs['pred_train_labels']
-    test_labels = kwargs['test_labels']
-    pred_test_labels = kwargs['pred_test_labels']
-
-    train_confusion = confusion_matrix(train_labels, pred_train_labels)
-    test_confusion = confusion_matrix(test_labels, pred_test_labels)
-
-    # Plot the confusion matrices as seperate figures
-    fig, ax = plt.subplots()
-    disp = ConfusionMatrixDisplay(confusion_matrix=train_confusion, display_labels=np.unique(train_labels))
-    disp.plot(ax=ax, xticks_rotation='vertical')
-    ax.set_title('Training Confusion Matrix')
-    plt.tight_layout()
-    plt.savefig('results/train_confusion.png', bbox_inches='tight', pad_inches=0)
-
-    fig, ax = plt.subplots()
-    disp = ConfusionMatrixDisplay(confusion_matrix=test_confusion, display_labels=np.unique(test_labels))
-    disp.plot(ax=ax, xticks_rotation='vertical')
-    ax.set_title('Testing Confusion Matrix')
-    plt.tight_layout()
-    plt.savefig(f'results/{dataset}_test_confusion.png', bbox_inches='tight', pad_inches=0)
-
-
-
-
-def example_classification():
-    """
-    An example of performing classification. Except you will need to first project the data.
-    """
-    train_feats, train_labels, test_feats, test_labels = load_new_dataset()
-
-    # Example Linear Discriminant Analysis classifier with sklearn's implemenetation
-    clf = LinearDiscriminantAnalysis()
-    clf.fit(train_feats, train_labels)
-
-    # Predict the labels of the training and testing data
-    pred_train_labels = clf.predict(train_feats)
-    pred_test_labels = clf.predict(test_feats)
-
-    # Get statistics
-    plot_conf_mats(train_labels=train_labels, pred_train_labels=pred_train_labels, test_labels=test_labels,
-                   pred_test_labels=pred_test_labels)
-
-
 def fisher_projection(train_feats, train_labels):
     '''
+    Fisher Projection (LDA):
     Steps:
     1. Compute the overall mean of the training features.
     2. Calculate the mean vector for each class.
@@ -240,6 +222,7 @@ def fisher_projection(train_feats, train_labels):
     9. Return the selected eigenvectors for projecting data into a lower-dimensional space.
 
     Note: Ensure numerical stability while computing the inverse of S_w.
+        - Using np.linalg.pinv(S_w), pseudo inverse
     '''
 
     # 1. Compute the overall mean of the training features.
@@ -290,18 +273,16 @@ def fisher_projection(train_feats, train_labels):
     # 7. Sort eigenvectors in descending order based on their absolute eigenvalues
     sorted_indices = np.argsort(np.abs(eigvals))[::-1]
 
-    # 8. Select the top two eigenvectors for dimensionality reduction
-    top_two_eigvecs = eigvecs[:, sorted_indices[:2]]  
+    # 8. Select the top eigenvectors for dimensionality reduction
+    top_eigvecs = eigvecs[:, sorted_indices[:10]]  
 
     # 9. Return the selected eigenvectors for projecting data into a lower-dimensional space
-    return top_two_eigvecs
+    return top_eigvecs
 
 
-def classification():
+def run_deep_learning():
     '''
-    TODO: Implement Leave-One-Subject-Out (LOSO) cross-validation.
-    You dont need to implement this fully here. You can modify this as you wnat
-
+        Leave-One-Subject-Out (LOSO) cross-validation with Deep Learning MLP:
         Loop over all subjects:
         - Each iteration, select one subject index as the test set.
         - Use all other subjects as the training set.
@@ -316,21 +297,70 @@ def classification():
     for i in range(1,11):
         print("")
         print("-----------------------------------------------------------------------------")
-        print("Subject ID: ", str(i))
+        print("Leave-One-Subject-Out (LOSO), Subject ID: ", str(i))
+        # Each iteration, select one subject index as the test set
+        # Use all other subjects as the training set
+        train_feats, train_labels, test_feats, test_labels = load_new_dataset(verbose=VERBOSE, subject_index=i)
+        
+        train_eigens = fisher_projection(train_feats, train_labels)
+
+        # Project training/testing feats through top eigen vectors
+        train_feats_proj = np.dot(train_feats, train_eigens)
+        test_feats_proj = np.dot(test_feats, train_eigens)
+        
+        print("")
+        print("Deep Learning MLP with Fisher Projection (LDA):")
+        test_acc_proj = deep_learning(train_feats_proj, train_labels, test_feats_proj, test_labels, i)
+        print("")
+        print("Deep Learning MLP without Fisher Projection (LDA):")
+        test_acc_no_proj = deep_learning(train_feats, train_labels, test_feats, test_labels, i)
+
+        # Store accuracy scores
+        # Save the accuracy score for each test subject
+        total_with_proj += test_acc_proj
+        total_without_proj += test_acc_no_proj
+
+    print("")
+    print("-----------------------------------------------------------------------------")
+    print("")
+    print("Final Results: ")
+    print("Leave-One-Subject-Out (LOSO) Cross-Validation, Average across 10 subjects")
+    print("With Fisher Projection (LDA): " + str(total_with_proj / 10) + " %")
+    print("Without Fisher Projection (LDA): " + str(total_without_proj / 10) + " %")
+
+def run_classification():
+    '''
+        Leave-One-Subject-Out (LOSO) cross-validation:
+        Loop over all subjects:
+        - Each iteration, select one subject index as the test set.
+        - Use all other subjects as the training set.
+        Store accuracy scores:
+        - Save the accuracy score for each test subject.
+        - Repeat this process for all subjects.
+        - Then find the average of all 10 subjects to get the final accuracy score
+    '''
+    total_with_proj = 0
+    total_without_proj = 0
+    # Loop over all subjects
+    for i in range(1,11):
+        print("")
+        print("-----------------------------------------------------------------------------")
+        print("Leave-One-Subject-Out (LOSO), Subject ID: ", str(i))
         # Each iteration, select one subject index as the test set
         # Use all other subjects as the training set
         train_feats, train_labels, test_feats, test_labels = load_new_dataset(verbose=VERBOSE, subject_index=i)
         train_eigens = fisher_projection(train_feats, train_labels)
 
+        # Project training/testing feats through top eigen vectors
         train_feats_proj = np.dot(train_feats, train_eigens)
         test_feats_proj = np.dot(test_feats, train_eigens)
         
         print("")
         print("Traditional KNeighborsClassifier with Fisher Projection (LDA):")
-        test_acc_proj = perform_traditional(train_feats_proj, train_labels, test_feats_proj, test_labels)
+        test_acc_proj = perform_traditional(train_feats_proj, train_labels, test_feats_proj, test_labels, i, True)
         print("")
         print("Traditional KNeighborsClassifier without Fisher Projection (LDA):")
-        test_acc_no_proj = perform_traditional(train_feats, train_labels, test_feats, test_labels)
+        test_acc_no_proj = perform_traditional(train_feats, train_labels, test_feats, test_labels, i, False)
 
         # Store accuracy scores
         # Save the accuracy score for each test subject
@@ -347,8 +377,10 @@ def classification():
 
 
 def main():
-    classification()
+    #run_classification()
+    run_deep_learning()
 
-
+    
 if __name__ == '__main__':
     main()
+
