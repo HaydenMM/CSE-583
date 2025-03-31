@@ -1,0 +1,22 @@
+experiment_name: "Q_Learning_Maze_20x20_Performance"
+agent: "Q-learning"
+maze_file: "mazes/20x20.txt"
+
+hyperparameters:
+  alpha: 0.03  # Lower learning rate to ensure stable Q-value updates
+  gamma: 0.8  # Higher discount factor to prioritize long-term rewards
+  epsilon_policy: "performance_based"  # Performance-based exploration strategy
+  epsilon: 1.0  # Initial epsilon
+  epsilon_min: 0.01  # Minimum epsilon value for exploitation
+  epsilon_decay: 0.6  # Slower decay to maintain exploration for a larger map
+
+training:
+  episodes: 1000  # Increased episodes to ensure convergence in a larger maze
+  max_steps: 400  # More steps per episode to accommodate the larger state space
+  render: True
+
+viz:
+  num_plots: 4
+  window_size: null
+
+save_dir: "results/q_learning/performance/"

@@ -1,0 +1,27 @@
+# DQN with Performance-Based Epsilon Decay
+experiment_name: "DQN_Performance_based_20x20"
+device: cuda  # Use 'cuda' for GPU or 'cpu' if no GPU is available
+agent: "DQN"  # Specifies the agent type
+maze_file: "mazes/20x20.txt"  # Path to the maze file
+
+hyperparameters:
+  num_layers: 6
+  hidden_size: 1024  # Increased to improve feature extraction in a larger state space
+  gamma: 0.75  # Higher discount factor to encourage long-term rewards
+  epsilon_policy: "performance_based"  # Exploration strategy
+  epsilon: 1.0  # Initial epsilon value (for performance-based policy)
+  epsilon_min: 0.05  # Lower minimum epsilon to allow more exploitation as learning progresses
+  epsilon_decay: 0.85  # Slower decay for sustained exploration in a larger map
+  batch_size: 256  # Larger batch size for more stable gradient updates
+  target_update: 10  # Frequency (in episodes) of target network updates
+
+training:
+  episodes: 1000  # Increased episodes to improve learning stability
+  max_steps: 400  # More steps per episode to accommodate the larger maze
+  render: True  # Whether to visualize training (slows down execution)
+
+viz:
+  num_plots: 4  # Number of episodes to visualize for trajectory heatmaps
+  window_size: null  # Moving average window size (null auto-adjusts based on data size)
+
+save_dir: "results/dqn/performance"  # Directory to save experiment results

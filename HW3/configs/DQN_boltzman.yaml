@@ -1,0 +1,26 @@
+experiment_name: "DQN_Boltzmann_20x20"
+device: cuda
+agent: "DQN"
+maze_file: "mazes/20x20.txt"
+
+hyperparameters:
+  num_layers: 6
+  hidden_size: 1024  # Sufficient network capacity for a larger maze
+  gamma: 0.8  # Higher discount factor to prioritize long-term rewards
+  epsilon_policy: "boltzmann"  # Use Boltzmann exploration
+  temperature: 1.0  # Initial temperature value
+  temperature_min: 0.05  # Lower minimum temperature for sharper action selection
+  temperature_decay: 0.85  # Slower decay to maintain exploration in a larger maze
+  batch_size: 256  # Larger batch size for stable learning
+  target_update: 5  # Frequent target network updates to reduce Q-value drift
+
+training:
+  episodes: 1000  # Increased episodes for better convergence
+  max_steps: 400  # More steps to allow exploration in a larger state space
+  render: True
+
+viz:
+  num_plots: 4
+  window_size: null
+
+save_dir: "results/dqn/boltzmann/"
